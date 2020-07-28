@@ -4,7 +4,7 @@ import os.path
 import cv2
 import time
 import numpy as np
-
+import threading
 from urllib.request import urlopen
 from model import create_model
 from align import AlignDlib
@@ -12,6 +12,23 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import LinearSVC
 from sklearn.metrics import f1_score, accuracy_score
+
+imgs, bb = [], []
+imgFrame = None
+stop_threads = False
+class LeerImg(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        global imgs
+        global bb   
+        while True:
+            time.sleep(0.5)
+            imgs, bb = align_image(imgFrame)
+            global stop_threads 
+            if stop_threads: 
+                break
 
 class IdentityMetadata():
     def __init__(self, base, name, file):
@@ -91,11 +108,13 @@ svc.fit(X_train, y_train)
 colors = [tuple(255 * np.random.rand(3)) for _ in range(10)]
 
 capture = cv2.VideoCapture(0)
+t = LeerImg()
+t.start()
 while True:
     stime = time.time()
     ret, frame = capture.read()
     if ret:
-        imgs, bb = align_image(frame)
+        imgFrame = frame
         for color, img, b in zip(colors, imgs, bb):
             img = (img / 255.).astype(np.float32)
             pre = nn4_small2_pretrained.predict(np.expand_dims(img, axis=0))[0]
@@ -109,6 +128,8 @@ while True:
         cv2.imshow('frame', frame)
         print('FPS {:.1f}'.format(1 / (time.time() - stime)))
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        stop_threads = True
+        t.join() 
         break
 
 capture.release()
