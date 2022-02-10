@@ -2,6 +2,6 @@ CMake
 dlib
 cycler
 opencv-python==4.0.1.24
-tensorflow==2.2.0
+tensorflow==2.5.3
 keras
 sklearn
